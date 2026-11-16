@@ -1,6 +1,6 @@
 # Order Management: three small microservices
 
-A hands-on Java 17, Spring Boot 3.5, Maven project. Three independent Spring MVC applications expose REST APIs and own separate in-memory H2 databases. Order Service uses Spring WebClient to call the other two services over HTTP. No shared database, service registry, gateway, Docker, or message broker is needed.
+A hands-onJava, Spring Boot 3.5, Maven project. Three independent Spring MVC applications expose REST APIs and own separate in-memory H2 databases. Order Service uses Spring WebClient to call the other two services over HTTP. No shared database, service registry, gateway, Docker, or message broker is needed.
 
 ```mermaid
 sequenceDiagram
