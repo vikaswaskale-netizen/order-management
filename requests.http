@@ -1,0 +1,44 @@
+### Inventory and its seeded products
+GET http://localhost:8081/api/products
+
+### Check availability directly
+GET http://localhost:8081/api/products/MOUSE/availability?quantity=2
+
+### Happy path: expected CONFIRMED, total 50.00
+POST http://localhost:8080/api/orders
+Content-Type: application/json
+
+{"sku":"MOUSE","quantity":2,"paymentMethod":"CARD"}
+
+### Simulated payment decline
+POST http://localhost:8080/api/orders
+Content-Type: application/json
+
+{"sku":"MOUSE","quantity":1,"paymentMethod":"DECLINE"}
+
+### Out of stock: REJECTED, payment is not called
+POST http://localhost:8080/api/orders
+Content-Type: application/json
+
+{"sku":"KEYBOARD","quantity":1,"paymentMethod":"CARD"}
+
+### Unknown product
+POST http://localhost:8080/api/orders
+Content-Type: application/json
+
+{"sku":"UNKNOWN","quantity":1,"paymentMethod":"CARD"}
+
+### Validation failure: HTTP 400
+POST http://localhost:8080/api/orders
+Content-Type: application/json
+
+{"sku":"MOUSE","quantity":0,"paymentMethod":"CARD"}
+
+### Saved orders
+GET http://localhost:8080/api/orders
+
+### Saved order (replace ID if needed)
+GET http://localhost:8080/api/orders/1
+
+### Saved payments
+GET http://localhost:8082/api/payments

@@ -1,0 +1,809 @@
+{
+    "info":  {
+                 "description":  "Start Inventory (8081), Payment (8082), and Order (8080). Run folders in order: Inventory, Order, Payment. Tests save generated IDs automatically. Each run creates orders and simulated payments. Stock is checked only; payment is simulated. Run Create confirmed order first if sending dependent requests individually.",
+                 "name":  "Order Management - Three Microservices",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "variable":  [
+                     {
+                         "key":  "inventoryUrl",
+                         "value":  "http://localhost:8081"
+                     },
+                     {
+                         "key":  "paymentUrl",
+                         "value":  "http://localhost:8082"
+                     },
+                     {
+                         "key":  "orderUrl",
+                         "value":  "http://localhost:8080"
+                     },
+                     {
+                         "key":  "orderId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "orderPaymentId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "paymentId",
+                         "value":  ""
+                     }
+                 ],
+    "item":  [
+                 {
+                     "name":  "1 - Inventory Service",
+                     "item":  [
+                                  {
+                                      "name":  "List seeded products",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{inventoryUrl}}/api/products"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Seeded products exist\u0027, function () { pm.expect(pm.response.json().map(p =\u003e p.sku)).to.include.members([\u0027MOUSE\u0027, \u0027LAPTOP\u0027, \u0027KEYBOARD\u0027]); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Mouse is available",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{inventoryUrl}}/api/products/MOUSE/availability?quantity=2"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Stock and price\u0027, function () { const p = pm.response.json(); pm.expect(p.available).to.eql(true); pm.expect(p.unitPrice).to.eql(25); pm.expect(p.stock).to.eql(50); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Keyboard is out of stock",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{inventoryUrl}}/api/products/KEYBOARD/availability?quantity=1"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Unavailable\u0027, function () { pm.expect(pm.response.json().available).to.eql(false); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Quantity exceeds mouse stock",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{inventoryUrl}}/api/products/MOUSE/availability?quantity=51"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Unavailable\u0027, function () { pm.expect(pm.response.json().available).to.eql(false); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Unknown product",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{inventoryUrl}}/api/products/UNKNOWN/availability?quantity=1"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 404\u0027, function () { pm.response.to.have.status(404); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Invalid quantity",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{inventoryUrl}}/api/products/MOUSE/availability?quantity=0"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "2 - Order Service - end-to-end flow",
+                     "item":  [
+                                  {
+                                      "name":  "Create confirmed order - saves IDs",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"MOUSE\",\"quantity\":2,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 201\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "pm.test(\u0027Confirmed total and payment\u0027, function () { const o = pm.response.json(); pm.expect(o.status).to.eql(\u0027CONFIRMED\u0027); pm.expect(o.total).to.eql(50); pm.expect(o.id).to.be.a(\u0027number\u0027); pm.expect(o.paymentId).to.be.a(\u0027number\u0027); pm.collectionVariables.set(\u0027orderId\u0027, o.id); pm.collectionVariables.set(\u0027orderPaymentId\u0027, o.paymentId); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get created order",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders/{{orderId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Saved order\u0027, function () { const o = pm.response.json(); pm.expect(String(o.id)).to.eql(String(pm.collectionVariables.get(\u0027orderId\u0027))); pm.expect(o.status).to.eql(\u0027CONFIRMED\u0027); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Verify payment created by Order Service",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments/{{orderPaymentId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Payment matches order\u0027, function () { const p = pm.response.json(); pm.expect(String(p.orderId)).to.eql(String(pm.collectionVariables.get(\u0027orderId\u0027))); pm.expect(p.status).to.eql(\u0027APPROVED\u0027); pm.expect(p.amount).to.eql(50); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Create declined order",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"MOUSE\",\"quantity\":1,\"paymentMethod\":\"DECLINE\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 201\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "pm.test(\u0027Payment declined\u0027, function () { pm.expect(pm.response.json().status).to.eql(\u0027PAYMENT_DECLINED\u0027); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject out-of-stock order",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"KEYBOARD\",\"quantity\":1,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 201\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "pm.test(\u0027Rejected without payment\u0027, function () { const o = pm.response.json(); pm.expect(o.status).to.eql(\u0027REJECTED\u0027); pm.expect(o.paymentId).to.eql(null); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject unknown product order",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"UNKNOWN\",\"quantity\":1,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 201\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "pm.test(\u0027Rejected\u0027, function () { pm.expect(pm.response.json().status).to.eql(\u0027REJECTED\u0027); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject invalid quantity",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"MOUSE\",\"quantity\":0,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject blank SKU",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"\",\"quantity\":1,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject unsupported payment method",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders",
+                                                      "body":  {
+                                                                   "raw":  "{\"sku\":\"MOUSE\",\"quantity\":1,\"paymentMethod\":\"CASH\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "List orders",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Orders array\u0027, function () { pm.expect(pm.response.json()).to.be.an(\u0027array\u0027).that.is.not.empty; });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Order not found",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{orderUrl}}/api/orders/9223372036854775807"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 404\u0027, function () { pm.response.to.have.status(404); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "3 - Payment Service - direct API",
+                     "item":  [
+                                  {
+                                      "name":  "Approve direct payment - saves ID",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments",
+                                                      "body":  {
+                                                                   "raw":  "{\"orderId\":{{orderId}},\"amount\":25.00,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 201\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "pm.test(\u0027Approved\u0027, function () { const p = pm.response.json(); pm.expect(p.status).to.eql(\u0027APPROVED\u0027); pm.expect(p.amount).to.eql(25); pm.collectionVariables.set(\u0027paymentId\u0027, p.id); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get direct payment",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments/{{paymentId}}"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Payment ID matches\u0027, function () { pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\u0027paymentId\u0027))); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Decline direct payment",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments",
+                                                      "body":  {
+                                                                   "raw":  "{\"orderId\":{{orderId}},\"amount\":25.00,\"paymentMethod\":\"DECLINE\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 201\u0027, function () { pm.response.to.have.status(201); });",
+                                                                                    "pm.test(\u0027Declined\u0027, function () { pm.expect(pm.response.json().status).to.eql(\u0027DECLINED\u0027); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject negative amount",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments",
+                                                      "body":  {
+                                                                   "raw":  "{\"orderId\":1,\"amount\":-1,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject missing order ID",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments",
+                                                      "body":  {
+                                                                   "raw":  "{\"amount\":25,\"paymentMethod\":\"CARD\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Reject unsupported payment method",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments",
+                                                      "body":  {
+                                                                   "raw":  "{\"orderId\":1,\"amount\":25,\"paymentMethod\":\"CASH\"}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               },
+                                                                   "mode":  "raw"
+                                                               }
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 400\u0027, function () { pm.response.to.have.status(400); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "List payments",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "pm.test(\u0027Payments array\u0027, function () { pm.expect(pm.response.json()).to.be.an(\u0027array\u0027).that.is.not.empty; });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Payment not found",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  "{{paymentUrl}}/api/payments/9223372036854775807"
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027HTTP 404\u0027, function () { pm.response.to.have.status(404); });"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   },
+                                                        "listen":  "test"
+                                                    }
+                                                ],
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 }
+             ]
+}
